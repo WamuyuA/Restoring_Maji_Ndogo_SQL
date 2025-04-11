@@ -1,5 +1,5 @@
 # Restoring_Maji_Ndogo_SQL
-This project was developed as part of the ALX Data Analytics course to practically  apply and reinforce learning.
+This project was developed as part of the [ALX Data Analytics course](https://www.alxafrica.com/programmes/) to practically  apply and reinforce learning.
 
 In this project, we dived into the the intricacies of using SQL to solve complex problems.
 
