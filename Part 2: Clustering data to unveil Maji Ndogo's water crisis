@@ -1,0 +1,502 @@
+### 1. Cleaning the Data
+
+***a. Add employees' emails in the format first_name.last_name@ndogogwater.gov***
+
+
+  - Select the employee column
+
+		SELECT *  FROM employee;
+
+ - Replace space with a full stop
+
+		SELECT
+    		REPLACE
+      			(employee_name, ' ','.') AS Employee_email_name
+    		FROM
+      			employee
+      
+
+ - Make it lowercase
+
+    		SELECT
+    		LOWER(REPLACE(  
+      			employee_name, ' ','.')) AS Employee_email_name
+    		FROM
+      			employee
+
+
+ - Stitch it together
+
+		SELECT
+   		CONCAT(
+   		LOWER(REPLACE(
+          		employee_name, ' ','.')), "@ndogowater.gov") AS new_email
+    		FROM
+        		employee
+
+ - Update the database with the emails
+
+   		SET SQL_SAFE_UPDATES = 0;
+   		UPDATE    employee
+   		SET    email    =    
+   		CONCAT(
+   		LOWER(REPLACE(
+          	employee_name, ' ','.')), "@ndogowater.gov")
+
+***b. Clean the phone numbers and ensure they are 12 characters long, consist the plus sign, the area code (99) and phone number digits)***
+
+ - Check the phone number length to confirm the phone number length
+
+    		SELECT
+    		LENGTH(phone_number)
+    		FROM
+            	employee;
+
+**results = 13**
+
+> P:S; Always remove added spaces in phone numbers. You might get errors when trying to call/sms the numbers with spaces.
+
+
+ - Trim the numbers to remove the spaces
+
+    		SELECT 
+       		LENGTH(TRIM(phone_number)) AS Trimmed_number
+    		FROM
+            	employee;
+
+**results = 12**
+
+ - Update the table with the correct phone numbers
+
+        	SET SQL_SAFE_UPDATES = 0;
+            
+        	UPDATE employee
+        	SET phone_number = TRIM(phone_number)
+        	WHERE LENGTH(phone_number) >12;
+  
+ ### 2. Honouring the Workers
+
+ ***a. Count how many employees are in each town***
+
+        SELECT town_name,
+        Count(assigned_employee_id) AS num_employees
+        FROM employee
+        GROUP BY town_name;
+
+
+  | Town Name | num_employees |
+  |----------|-----------------|
+  | Ilanga | 3 |
+  | Rural| 29 |
+  | Lusaka | 4 |
+  | Zanzibar| 4 |
+  | Dahabu | 6 |
+  | Kintampo | 1 |
+  | Harare | 5 |
+  | Yaounde | 1 |
+  | Serowe | 3 |
+
+> Insights: Many of our workers live in the Rural region of Maji Ndogo
+
+***b. Find the top 3 field surveyors with the most location visits to be congratulated by the president of Maji Ndogo***
+
+	SELECT 
+        	assigned_employee_id,
+        COUNT(visit_count) AS number_of_visits
+        FROM visits
+        GROUP BY assigned_employee_id
+        ORDER BY COUNT(visit_count) DESC
+        LIMIT 3;
+
+
+| assigned_employee_id | number_of_visits |
+|----------------------|------------------|
+|        1             |       3708       |
+|       30             |        3676      |
+|       34             |        3539      |
+
+
+
+ - Extract the 3 employees' data
+
+	Select *
+	FROM employee
+	WHERE assigned_employee_id
+	IN(
+		"1",
+		"30",
+		"34"
+	);
+
+
+
+| assigned_employee_id	| employee_name	 	 | phone_number		  | email address	      | province_name	     | town_name      | position      |
+|-----------------------|------------------------|------------------------|---------------------------|----------------------|----------------|---------------|
+| 	1		| Bello Azibo		| 99643864786		| bello.azibo@ndogowater.gov | 129 Ziwa La Kioo Road |	Kilimani Rural|	Field Surveyor|
+|30	|Pili Zola	|99822478933		|pili.zola@ndogowater.gov	|46 Stone Town Street	|Hawassa	Zanzibar	|Field Surveyor|
+|34	|Rudo Imani	|99046972648	|rudo.imani@ndogowater.gov	|15 Lake Malawi Avenue	|Kilimani	Ilanga	|Field Surveyor
+
+
+
+### 3. Analysing Locations
+
+***a. Count the number of records per town***
+
+	SELECT 
+		town_name,
+	COUNT(location_id) AS records_per_town
+	FROM location
+	GROUP BY town_name
+	ORDER BY COUNT(location_id) DESC;
+
+| **Town** | **Count** |
+|----------|-----------|
+| Rural    |	23740 |
+| Harare   |	1650 |
+| Amina   |	1090 |
+| Lusaka   |	1070 |
+| Mrembo   |	990 |
+| Asmara   |	930 |
+| Dahabu   |	930 |
+| Kintampo  |	780 |
+| Ilanga   |	780 |
+| Isiqalo   |	770 |
+| Zuri   |	750 |
+| Amara |	710 |
+| Majengo |	620 |
+| Pwani |	520 |
+| Kofi |	510 |
+| Serowe |	480 |
+| Bahari |	470 |
+| Marang |	460 |
+| Abidjan |	400 |
+| Bello |	400 |
+| Cheche |	370 |
+| Deka |	350 |
+| Djenne |	310 |
+| Zanzibar |	300 |
+| Yaounde |	270 |
+
+***b. Count the records per province***
+
+	SELECT 
+		province_name,
+	COUNT(location_id) AS records_per_province
+	FROM location
+	GROUP BY province_name
+	ORDER BY COUNT(location_id) DESC;
+ 
+
+| **Province** | **Count** |
+|--------------|-----------|
+| Kilimani     |	9510 |
+| Akatsi       |	8940 |
+| Sokoto       |	8220 |
+| Amanzi       |	6950 |
+| Hawassa      |	6030 |
+
+
+***c. Create a set showing***
+
+- province_name
+- town_name
+- aggregated count of records for each town
+- group the data by both province_name and town_name
+- order results by province_name
+- sort towns by their record counts in descending order
+
+
+ 		SELECT 
+ 			province_name,
+ 			town_name,
+ 		COUNT(town_name) AS records_per_town
+ 		FROM location
+ 		GROUP BY province_name , town_name  
+ 		ORDER BY province_name DESC
+
+
+***d. Check the number of records for each location type***
+
+
+	SELECT 
+		location_type,
+	COUNT(location_id) AS num_sources
+	FROM location
+	GROUP BY location_type;
+
+
+
+| location_type | num_sources |
+|---------------|-------------|
+| Urban	 | 15910 |
+| Rural	| 23740 |
+
+
+
+> We can see that there are more rural sources than urban, but it's really hard to understand those numbers. Percentages are more relatable. If we use SQL as a very overpowered calculator:
+>
+> SELECT 23740 / (15910 + 23740) * 100
+>
+> We can see that 60% of all water sources in the data set are in rural communities.
+>
+> 60% of water sources are in rural communities acroos Maji Ndogo
+
+
+### 4. Diving into the Sources
+
+***a. Check how many people did the survey in total***
+
+		SELECT
+		SUM(number_of_people_served) AS total_number_of_people_surveyed
+		FROM water_source;
+
+**results = 27628140**
+
+
+***b. Check how many wells, taps and rivers in Maji Ndogo***
+
+	SELECT
+   		type_of_water_source,
+   	COUNT(number_of_people_served) AS number_of_sources
+   	FROM water_source
+   	GROUP BY type_of_water_source;
+
+
+| type_of_water_source | number_of_sources |
+|-------------|--------------|
+| tap_in_home	| 7265 |
+| tap_in_home_broken |	5856 |
+| well |	17383 |
+| shared_tap	| 5767 |
+| river	| 3379 |
+
+
+**Which of the sources stand out? "Well"**
+
+
+***c. Check how many people share particular types of water sources on average. Round up the numbers***
+
+| type_of_water_source | avg_perple_per_source |
+|---------|-----------|
+| tap_in_home	| 644 |
+| tap_in_home_broken |	649 |
+| well	| 279 |
+| shared_tap	| 2071 |
+| river	| 699 |
+
+
+> For tap_in_home and broken_tap_in_home, the surveyors combined the data of many households together and added this as a single tap record, but each household has its own tap. There is an average of 6 people living in a home. So people actually share 1 tap,  not 644.
+
+
+***d. Calculate the percentage of people served per water source***
+
+
+| type_of_water_source | percentage_people_per_source |
+|--------------|---------------|
+| shared_tap	| 43 |
+| well	 | 18 |
+| tap_in_home | 	17 |
+| tap_in_home_broken |	14 |
+| river	| 9 |
+
+
+### 5. Start of a Solution
+
+- At some point, the Maji Ndogo water team will need to fix or improve all of the infrastructure, and they will need to make data-driven decisions. The best approach would be to fix things that affect people the most first.
+
+  ***a. Write a query that ranks each type of source based on how many people in total use it***
+
+
+  		SELECT type_of_water_source, 
+   			SUM(number_of_people_served) AS people_served, 
+   			RANK() OVER (ORDER BY SUM(number_of_people_served) DESC) AS rank_by_population
+		FROM water_source
+		GROUP BY type_of_water_source;
+
+
+| type_of_water_source | people_served | rank_by_population |
+|-----------|-----------|-----------|
+| shared_tap |	11945272 |	1 |
+| well	| 4841724 |	2
+| tap_in_home	| 4678880 |	3 |
+| tap_in_home_broken |	3799720 |	4 |
+| river	| 2362544 |	5 |
+
+
+- Since taps in home are already the best sources available and we don't need to do anything to improve them, we should remove them from the rank.
+
+| type_of_water_source | people_served | rank_by_population |
+|-----------|-----------|-----------|
+| shared_tap |	11945272 |	1 |
+| well	| 4841724 |	2
+| tap_in_home	| 4678880 |	3 ||
+| river	| 2362544 |	4 |
+
+
+***b. Create a query that:***
+
+- ranks sources within each type
+- limits the results to improvable sources
+- filters and orders the result set
+- orders the results to see the top of the list
+
+  
+**rank()**
+
+		SELECT 
+			source_id,
+			 type_of_water_source,
+			 number_of_people_served,
+		RANK() OVER(ORDER BY number_of_people_served) AS priority_rank
+		FROM water_source
+		ORDER BY type_of_water_source;
+
+**row_number()**
+
+		SELECT 
+			source_id,
+			  type_of_water_source,
+			  number_of_people_served,
+		 ROW_NUMBER() OVER(ORDER BY number_of_people_served) AS priority_rank
+		 FROM water_source
+		ORDER BY type_of_water_source;
+
+
+**partition BY/ Order BY**
+
+		SELECT 
+			source_id,
+			 type_of_water_source,
+				number_of_people_served,
+		ROW_NUMBER() OVER(PARTITION BY type_of_water_source ORDER BY number_of_people_served) AS priority_rank
+			FROM water_source
+		ORDER BY type_of_water_source;
+
+### 6. Analysing Queues
+
+> - The visits table documented all of the visits the field surveyors made to each location, and for most sources, 1 visit was enough,h but if there were queues, the surveyors might have gone to the location more than once, and it is ideal to know how long people queued for water.
+>
+> With the information we have, we can dive deeper into the queueing situation in Maji Nodog, which day of the week it was and what time.
+> 
+
+
+***a. Check how long the survey took***
+
+   		WITH time_extracted_visits AS (
+   		SELECT 
+  		MIN(time_of_record) AS start_date,
+  		MAX(time_of_record) AS end_date
+  		FROM 
+  			time_extracted_visits
+  				)
+  		SELECT 
+  			start_date,
+  			end_date,
+  		TIMEDIFF(end_date, start_date) AS time_difference,
+  		DATEDIFF(end_date, start_date) AS date_difference
+  		FROM 
+  			time_extracted_visits;
+
+**results = 924 days ( 2years and half years)**
+
+
+***b. Check the average total queue time for water***
+
+   		SELECT
+   		AVG(NULLIF(time_in_queue, 0)) AS avg_time_in_queue
+   		FROM visits;
+
+
+**Answer - 123.2574 minutes (2 hours)**
+
+***c. Check the average queue time on different days***
+
+  		SELECT
+  		DAYNAME(time_of_record) AS day_of_week,
+  		ROUND(AVG (NULLIF(time_in_queue, 0))) AS avg_time_in_queue
+  		FROM visits
+  		GROUP BY day_of_week;
+
+|day_of_week | avg_time_in_queue |
+|------------|-------------------|
+|Friday |120 |
+|Saturday | 246 |
+| Sunday | 82 |
+| Monday | 137 |
+| Tuesday | 108 |
+| Wednesday | 97 |
+| Thursday | 105 |
+
+
+
+***d. Check at what time during the day people collect water. Order the results accordingly***
+
+ 		SELECT
+ 		HOUR(time_of_record) AS hour_of_day,
+ 		ROUND(AVG(NULLIF(time_in_queue,0))) AS AVG_queue_time
+ 		FROM visits
+ 		GROUP BY hour_of_day;
+
+- Changing the time format to something like 06:00 would help in reading it better
+
+		SELECT
+		TIME_FORMAT(TIME(time_of_record), '%H:00') AS hour_of_day,
+		ROUND(AVG(NULLIF(time_in_queue,0))) AS AVG_queue_time
+		FROM visits
+		GROUP BY hour_of_day;
+
+***e. use the CASE() function for each day to separate the queue time column into a column for each day.***
+
+> Where the day name is Sunday, there are queue time values, and all other rows are null. So now if we aggregate that column, we will use all of the
+ values that are not null.
+>
+> By adding AVG() around the CASE() function, we calculate the average, but since all of the other days' values are 0, we get an average for Sunday only, rounded to 0 decimals. To aggregate by the hour, we can group the data by hour_of_day, and to make the table chronological, we also order by hour_of_day.
+>
+> We create separate columns for each day with a CASE() function.
+>
+
+
+		SELECT 
+		TIME_FORMAT(TIME(time_of_record),    '%H:00')    AS    hour_of_day, 
+		
+		--    Sunday 
+		ROUND(AVG( 
+		CASE 
+		WHEN    DAYNAME(time_of_record)    =    'Sunday'    THEN    time_in_queue 
+		ELSE    NULL 
+		END 
+		),0)    AS    Sunday,
+		
+		--    Monday 
+		ROUND(AVG( 
+		CASE WHEN    DAYNAME(time_of_record)    =    'Monday'    THEN    time_in_queue 
+		ELSE    NULL END ),0)    AS    Monday, 
+
+		--    Tuesday 
+		ROUND(AVG( CASE WHEN    DAYNAME(time_of_record)    =    'Tuesday'    THEN    time_in_queue ELSE    NULL END ),0)    AS    Tuesday, 
+
+		 --    Wednesday 
+		 ROUND(AVG( CASE WHEN    DAYNAME(time_of_record)    =    'Wednesday'    THEN    time_in_queue ELSE    NULL END ),0)    AS    Wednesday,  
+
+		--    Thursday 
+		ROUND(AVG( CASE WHEN    DAYNAME(time_of_record)    =    'Thursday'    THEN    time_in_queue ELSE    NULL END ),0)    AS   Thursday, 
+		
+		 --    Friday 
+		 ROUND(AVG( CASE WHEN    DAYNAME(time_of_record)    =    'Friday'    THEN    time_in_queue ELSE    NULL END ),0)    AS    Friday,  
+		
+		--    Saturday 
+		ROUND(AVG( CASE WHEN    DAYNAME(time_of_record)    =    'Saturday'    THEN    time_in_queue ELSE    NULL END ),0)    AS    Saturday
+					
+		FROM visits
+		WHERE time_in_queue    !=    0     
+		GROUP    BY hour_of_day 
+		ORDER    BY hour_of_day;
+
+
+> This is equivalent to having a pivot table in Google Sheets/Excel.
+>
+
+[Queue Times for Different Days and Hours Table](https://docs.google.com/spreadsheets/d/1J4I94IOTxryXlpKexzSTJtHPseNDcyBWN0CBRQTURxg/edit?gid=1575696670#gid=1575696670)
+
+
+![image](https://github.com/user-attachments/assets/2838d0a0-0562-4a5b-922e-45b0c100530b)
