@@ -1,0 +1,238 @@
+### 1. Understanding the data
+
+  ***a. Data Model;***
+  
+   - 60 000 unique records
+     
+   - 43 columns
+     
+   - 7 Tables
+
+
+          USE md_water_services;
+		
+          SHOW TABLES;
+
+
+  | Tables_in_md_water_services | 
+  |----------|
+  | employee | 
+  | global_water_access|
+  | location | 
+  | visits| 
+  | water_quality | 
+  | water_source | 
+  | well_pollution | 
+
+  
+
+  ***b. Retrieve the first few records from each table***
+
+          SELECT * FROM md_water_services.table_name; 
+
+
+  ### 2. Dive into the water sources
+  
+
+  ***a. Extract water sources table***
+  
+
+          SELECT * FROM md_water_services.water_source;
+
+
+  ***b. Identify unique types of water sources***
+
+  - 5 sources of water
+
+
+        USE md_water_services;
+        SELECT DISTINCT
+          type_of_water_source
+        FROM
+          md_water_services.water_source;
+
+ | type_of_water_source | 
+  |----------|
+  | tap_in_home | 
+  | tap_in_home_broken|
+  | well | 
+  | shared_tap| 
+  | river | 
+  
+
+> An important note on the home taps: About 6-10 million people have running water installed in their homes in Maji Ndogo, including broken taps. If we were to document this, we would have a row of data for each home, so that one record is one tap. That means our database would contain about 1 million rows of data, which may slow our systems down. For now, the surveyors combined the data of many households together into a single record.
+>
+> For  example,  this  record,  AkHa00000224  is  for  a  tap_in_home  that  serves  956  people.   What  this  means  is  that  the  records  of  about 160  homes  nearby  were  combined  into  one  record,  with  an  average  of  6  people  living  in  each  house  160  x  6  ≈  956.    So  1  tap_in_home
+or  tap_in_home_broken  record  actually  refers  to  multiple  households,  with  the  sum  of  the  people  living  in  these  homes  equal  to  num-
+ber_of_people_served.
+
+
+
+  ### 3. Unpacking the visits to water sources
+
+  ***a. Extract visits table***
+
+          SELECT * FROM md_water_services.visits;
+
+***b. Extract data on the time_in_queue column if queue time is more than 8 hours***
+
+        USE md_water_services;
+        SELECT * FROM
+          md_water_services.visits
+        WHERE
+          time_in_queue >= 500
+
+
+***c. Noting down a couple of records from location ID, find the type of water sources with high queue times***
+
+        SELECT *
+        FROM
+          md_water_services.water_source
+        WHERE
+          source_id
+        IN( "AkLu01628224",
+            "AkRu05234224",
+            "HaRu19601224",
+            "HaZa21742224",
+            "SoRu36096224",
+            "SoRu38776224"
+        );
+
+
+ ### 4. Assessing the quality of water sources
+
+***a. Extract water sources quality table***
+
+        SELECT *
+        FROM
+          md_water_services.water_quality;
+
+
+> Field surveyors assigned a score to each water source with 1 being terrible and 10 for a good and clean water source in homes. The surveyors did not revisit these homes with good and clean water and therefore, there shouldn't be any second visits in good water sources like taps in homes.
+
+
+***b. Extract taps in homes sources with more than 1 source visit***
+
+        SELECT *
+        FROM
+          md_water_services.water_quality
+        WHERE
+          subjective_quality_score = 10
+        AND
+          visit_count > 1
+
+> 1526 rows returned. This shows that some of the filed employees may have made mistakes when entering data
+
+  ### 5. Investigating pollution issues
+
+***a. Extract well pollution table***
+
+        SELECT * FROM md_water_services.well_pollution;
+
+> Some  are  contaminated  with  biological  contaminants, while  others  are  polluted  with  an  excess  of  heavy  metals  and  other  pollutants.   Based  on  the  results,  each  well  was  classified  as   Clean, Contaminated:   Biological  or  Contaminated:   Chemical.   It  is  important  to  know  this  because  wells  that  are  polluted  with  bio-  or other  contaminants  are  not safe  to  drink.   It  looks  like  the field employees  recorded  the  source_id  of  each  test,  so  we  can  link  it  to  a  source,  at  some place  in  Maji  Ndogo.
+
+
+***b. Checking the integrity of data***
+
+> In  the  well  pollution  table,  the  descriptions  are  notes  taken  by  the field  scientists  as  text,  so  it  will  be  challenging  to  process  it.    The biological  column  is  in  units  of  CFU/mL,  so  it  measures  how  much  contamination  is  in  the  water.    0  is  clean,  and  anything  more  than 0.01  is  contaminated. 
+
+        SELECT *
+        FROM
+	        md_water_services.well_pollution
+        WHERE
+	        biological > 0.01
+        AND
+        	results = "Clean"
+
+
+> The extracted records show some inconsistencies in how some well statuses have been recorded. Some records have been recorded as 'Clean even though the biological column is >0.01
+
+
+***c. Find and remove the 'Clean' from all records with biological contaminations***
+
+*Finding records with 'Clean' description*
+
+38 records found
+
+        SELECT *
+        FROM
+        	md_water_services.well_pollution
+        WHERE
+	        biological > 0.01
+        AND
+          description LIKE "Clean%"
+
+*Fix the records with this error*
+
+> Before making changes that will affect the overall data you are working on, it is advisable to first confirm the changes before updating them on the database so as to not fill the database with the incorrect values. The safest way to do Update is by testing the changes on a copy of the table first.
+
+      CREATE TABLE
+      	md_water_services.well_pollution_copy
+      AS (
+      SELECT *
+      FROM
+	      md_water_services.well_pollution
+      );
+
+*Run code in the copy table to test the new changes*
+
+		      SET SQL_SAFE_UPDATES = 0;
+		      SELECT * FROM md_water_services.well_pollution_copy;
+		      UPDATE
+			      well_pollution_copy
+		      SET
+			      description = "Bacteria: E. coli"
+		      WHERE
+			      description = "Clean Bacteria: E. coli";
+		      UPDATE
+			      well_pollution_copy
+		      SET
+			      description = "Bacteria: Giardia Lamblia"
+		      Where
+			      description = "Clean Bacteria: Giardia Lamblia";
+		      UPDATE
+			      well_pollution_copy
+		      SET
+			      Results = "Contaminated: Biological"
+		      WHERE 
+			      Biological > 0.01 
+		      AND
+			      Results = "Clean";
+
+
+*Check if errors have been removed from the copy table*
+
+      SELECT  *
+      FROM
+        well_pollution_copy
+      WHERE
+        description    LIKE    "Clean_%"
+      OR    (results    =    "Clean"    AND    biological    >    0.01);
+
+
+*If everything is good to go, copy paste the code on the main table and delete the copy table*
+
+      SET SQL_SAFE_UPDATES = 0;
+	      SELECT * FROM md_water_services.well_pollution;
+	      UPDATE
+		      well_pollution
+	      SET
+		      description = "Bacteria: E. coli"
+	      WHERE
+		      description = "Clean Bacteria: E. coli";
+	      UPDATE
+		      well_pollution
+	      SET
+		      description = "Bacteria: Giardia Lamblia"
+	      Where
+		      description = "Clean Bacteria: Giardia Lamblia";
+	      UPDATE
+		      well_pollution
+	      SET
+		      Results = "Contaminated: Biological"
+	      WHERE 
+		      Biological > 0.01 
+	      AND
+		      Results = "Clean";
+
+*Drop the Well_pollution_copy table*
